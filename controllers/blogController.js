@@ -8,9 +8,6 @@ exports.createBlog = (req, res) => {
   const { title, details } = req.body;
   const imagePath = req.file ? req.file.filename : null;
 
-  // Now you can insert into DB with imagePath
-  //   res.status(201).json({ title, details, imagePath });
-
   const slug = slugify(title, { lower: true });
   db.query(
     "INSERT INTO blogs (title, slug, details, img) VALUES (?, ?, ?, ?)",
@@ -46,7 +43,23 @@ exports.getBlogs = (req, res) => {
   });
 };
 
+exports.getBlogById = (req, res) => {
+  console.log("param --> ", req.param, req.query, req.body);
+  db.query(
+    "SELECT * FROM blogs WHERE id = ?",
+    [req.params.id],
+    (err, result) => {
+      if (err) return res.status(500).send(err);
+      if (result.length === 0) {
+        return res.status(404).json({ message: "Blog not found." });
+      }
+      res.json(result[0]);
+    }
+  );
+};
+
 exports.getBlogBySlug = (req, res) => {
+  console.log(req.param);
   db.query(
     "SELECT * FROM blogs WHERE slug = ?",
     [req.params.slug],
@@ -60,15 +73,26 @@ exports.getBlogBySlug = (req, res) => {
 };
 
 exports.updateBlog = (req, res) => {
-  const { title, details, img } = req.body;
+  console.log("Text fields: ", req.body);
+
+  const { title, details } = req.body;
+  const imagePath = req.file ? req.file.filename : req.body.img || null;
+
   const slug = slugify(title, { lower: true });
 
   db.query(
     "UPDATE blogs SET title = ?, slug = ?, details = ?, img = ? WHERE id = ?",
-    [title, slug, details, img, req.params.id],
+    [title, slug, details, imagePath, req.params.id],
     (err) => {
       if (err) return res.status(500).send(err);
-      res.json({ message: "Blog updated!" });
+      res.json({
+        message: "Blog updated!",
+        id: req.params.id,
+        title,
+        slug,
+        details,
+        img: imagePath,
+      });
     }
   );
 };
